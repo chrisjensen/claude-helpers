@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# opencode on a synthetic.new model family (head-to-head testing).
+# Selects a per-family config overlay so opencode's `model` + `small_model`
+# both resolve to that family's synthetic IDs — no stray claude-* or
+# cross-family calls. Overlay layers over ~/.config/opencode/opencode.json
+# via OPENCODE_CONFIG (merge, conflicting keys win).
+#
+# Family resolution order: $MODEL (set by the kopencode/qopencode/gopencode
+# wrappers) -> leading positional arg. Anything left is passed to opencode.
+# Fails loud on unknown family or missing overlay.
+set -eu
+
+FAMILIES_DIR="$HOME/.config/opencode/families"
+
+family="${MODEL:-}"
+# Consume a leading positional family arg only if MODEL didn't already set one.
+if [ -z "$family" ] && [ "$#" -gt 0 ] && [ "${1#-}" = "$1" ]; then
+  family="$1"; shift
+fi
+
+if [ -z "$family" ]; then
+  echo "hopencode: no family selected. Use kopencode/qopencode/gopencode, 'hopencode <family>', or MODEL=<family>." >&2
+  echo "hopencode: available: $(ls "$FAMILIES_DIR" 2>/dev/null | sed 's/\.json$//' | paste -sd, -)" >&2
+  exit 2
+fi
+
+overlay="$FAMILIES_DIR/$family.json"
+if [ ! -f "$overlay" ]; then
+  echo "hopencode: no overlay for family '$family' ($overlay missing). Run claude-perms setup.sh." >&2
+  exit 2
+fi
+
+# opencode's anthropic provider refuses to send without *a* credential, and the
+# --mini path doesn't fall back to stored auth. Family models route to
+# synthetic/z.ai, where the model-router strips this client key and injects the
+# real upstream key — so a placeholder is enough and never leaks. A real key in
+# the env (if any) is preserved. Scoped to family launchers only, so plain
+# `opencode` keeps its OAuth for real claude-* models.
+: "${ANTHROPIC_API_KEY:=opencode-family-placeholder-router-strips-this}"
+export ANTHROPIC_API_KEY
+
+exec env OPENCODE_CONFIG="$overlay" opencode "$@"

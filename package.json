@@ -1,0 +1,11 @@
+{
+  "name": "claude-helpers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal Claude Code hooks (harness lib + PreToolUse enforcers) and opencode launchers.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "setup": "node install.mjs"
+  }
+}
