@@ -24,24 +24,43 @@ wires that up.
   redirect to `/tmp/claude/<name>.log`.
 - `hooks/plan-review-suggest.mjs` — on `ExitPlanMode`, asks the agent to run
   /plan-review first (once per session).
+- `hooks/quality-all-suggest.mjs` — **Stop** event hook: blocks stop when this
+  session left uncommitted changes and /quality-all hasn't run, suggesting it.
+- `hooks/quality-baseline-init.mjs` — **SessionStart** event hook: snapshots the
+  dirty-file list so quality-all-suggest only nags about *this* session's changes.
+- `hooks/git-push-remind.mjs` — **PostToolUse** (Bash) event hook: after
+  `git push`, nudges the agent to run /gh-pr-watch (non-blocking).
+  These three are **event hooks** registered directly in `~/.claude/settings.json`
+  (not claude-perms chainedHooks). The two quality hooks also skip **research
+  mode** (`CLAUDE_PERMS_MODE=research`).
 - `bin/` — opencode launchers (`hopencode` core; `kopencode`/`qopencode`/`gopencode`
   exec it). Deployed to `~/.local/bin`.
-- `install.mjs` — deploys `hooks/` → `~/.claude/hooks/`, `bin/` → `~/.local/bin`, and
-  registers the enforcers (+ rtk) as ordered `chainedHooks`. Node (not shell) so the
-  config merge is a plain `JSON.parse`/`stringify` — no jq — matching the hooks' runtime.
+- `install.mjs` — deploys `hooks/` → `~/.claude/hooks/`, `bin/` → `~/.local/bin`,
+  registers the enforcers (+ rtk) as ordered `chainedHooks`, and registers the three
+  event hooks (Stop / SessionStart / PostToolUse) in `~/.claude/settings.json`. Node
+  (not shell) so the config merge is a plain `JSON.parse`/`stringify` — no jq —
+  matching the hooks' runtime.
 - `test/hooks.test.mjs` — unit tests for the Node hooks.
 - `test/harness.test.sh` — unit checks for the bash harness lib.
 
 ## Hook contract
 
-Each hook reads the tool-call JSON on stdin and follows the harness's PreToolUse
-contract, which claude-perms digests:
+Each **PreToolUse enforcer** reads the tool-call JSON on stdin and follows the
+harness's PreToolUse contract, which claude-perms digests:
 
 - **exit 0** → allow.
 - **exit 2 + stderr** → block; stderr is the reason fed back to the agent.
 
+The **event hooks** (Stop / SessionStart / PostToolUse) instead emit their verdict
+as stdout JSON and exit 0 — a `{decision:"block",reason}` for Stop, a
+`hookSpecificOutput.additionalContext` for PostToolUse.
+
 `tool_input.command` is identical across Claude Code / Kimi / opencode; only the
 tool name differs (handled by the `matcher`, not the hook).
+
+**Kill switch:** setting `X_CLAUDE_HELPERS_SUPPRESS_NAGS=1` makes every nag/block
+hook (commit, quality, long-command, plan-review, push) exit early — a global
+opt-out for a session where you don't want to be nagged.
 
 ## Develop
 

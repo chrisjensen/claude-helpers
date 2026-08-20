@@ -7,7 +7,9 @@
 // Registered as a claude-perms chainedHooks entry (matcher: ExitPlanMode).
 
 import { existsSync, readFileSync } from 'node:fs';
-import { readStdin, parseInput, block } from './lib/harness.mjs';
+import { readStdin, parseInput, block, nagsSuppressed } from './lib/harness.mjs';
+
+if (nagsSuppressed()) process.exit(0);
 
 const input = parseInput(readStdin());
 const transcriptPath = input?.transcript_path ?? '';

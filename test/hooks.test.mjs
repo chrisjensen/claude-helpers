@@ -1,11 +1,12 @@
-// Unit tests for the PreToolUse hook ports. Each hook reads a tool-call JSON on
-// stdin and follows the exit-0 (allow) / exit-2 + stderr (block) contract, so we
-// spawn it and assert on the exit code and stderr.
+// Unit tests for the hook ports. PreToolUse enforcers follow the exit-0 (allow)
+// / exit-2 + stderr (block) contract; the event hooks (Stop / SessionStart /
+// PostToolUse) emit their verdict as stdout JSON and exit 0. We spawn each hook
+// and assert on exit code, stderr, and stdout.
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +20,7 @@ function run(script, { input = {}, env = {}, cwd } = {}) {
     cwd,
     encoding: 'utf8',
   });
-  return { code: r.status, stderr: r.stderr ?? '' };
+  return { code: r.status, stderr: r.stderr ?? '', stdout: r.stdout ?? '' };
 }
 
 function tempRepo() {
@@ -64,6 +65,21 @@ describe('source-commit-enforce.mjs', () => {
     });
     assert.equal(r.code, 0);
   });
+
+  test('X_CLAUDE_HELPERS_SUPPRESS_NAGS=1 lets a bare commit through', () => {
+    const dir = tempRepo();
+    try {
+      const r = run('source-commit-enforce.mjs', {
+        input: { tool_input: { command: 'git commit -m "wip"' } },
+        env: { X_CLAUDE_HELPERS_SUPPRESS_NAGS: '1' },
+        cwd: dir,
+      });
+      assert.equal(r.code, 0);
+      assert.equal(r.stderr, '');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('long-command-suggest.mjs', () => {
@@ -97,5 +113,73 @@ describe('plan-review-suggest.mjs', () => {
     });
     assert.equal(r.code, 2);
     assert.match(r.stderr, /plan-review/);
+  });
+});
+
+describe('quality-baseline-init.mjs', () => {
+  test('writes a baseline snapshot for the session', () => {
+    const dir = tempRepo();
+    const sessionId = `test-${process.pid}-${Date.now()}`;
+    const baselineFile = join(tmpdir(), `claude-quality-baseline-${sessionId}`);
+    try {
+      run('quality-baseline-init.mjs', { input: { session_id: sessionId }, cwd: dir });
+      assert.equal(existsSync(baselineFile), true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(baselineFile, { force: true });
+    }
+  });
+});
+
+describe('quality-all-suggest.mjs', () => {
+  test('blocks stop when a dirty repo has no /quality-all run', () => {
+    const dir = tempRepo();
+    writeFileSync(join(dir, 'dirty.txt'), 'x'); // untracked -> non-empty porcelain
+    try {
+      const r = run('quality-all-suggest.mjs', {
+        input: { stop_hook_active: false }, // no session_id -> skip baseline gate
+        cwd: dir,
+      });
+      assert.equal(r.code, 0);
+      assert.match(r.stdout, /"decision":"block"/);
+      assert.match(r.stdout, /quality-all/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('CLAUDE_PERMS_MODE=research suppresses the nag', () => {
+    const dir = tempRepo();
+    writeFileSync(join(dir, 'dirty.txt'), 'x');
+    try {
+      const r = run('quality-all-suggest.mjs', {
+        input: { stop_hook_active: false },
+        env: { CLAUDE_PERMS_MODE: 'research' },
+        cwd: dir,
+      });
+      assert.equal(r.code, 0);
+      assert.equal(r.stdout, '');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('git-push-remind.mjs', () => {
+  test('reminds after a git push', () => {
+    const r = run('git-push-remind.mjs', {
+      input: { tool_input: { command: 'git push origin main' } },
+    });
+    assert.equal(r.code, 0);
+    assert.match(r.stdout, /additionalContext/);
+    assert.match(r.stdout, /gh-pr-watch/);
+  });
+
+  test('is a no-op for a non-push command', () => {
+    const r = run('git-push-remind.mjs', {
+      input: { tool_input: { command: 'git status' } },
+    });
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout, '');
   });
 });

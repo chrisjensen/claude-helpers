@@ -14,7 +14,9 @@
 //
 // Registered as a claude-perms chainedHooks entry.
 
-import { readStdin, parseInput, detectHarness, harnessAgentName, block } from './lib/harness.mjs';
+import { readStdin, parseInput, detectHarness, harnessAgentName, block, nagsSuppressed } from './lib/harness.mjs';
+
+if (nagsSuppressed()) process.exit(0);
 
 const input = parseInput(readStdin());
 const harness = detectHarness(input);

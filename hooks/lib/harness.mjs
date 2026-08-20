@@ -85,6 +85,16 @@ export function harnessInstructionsFile(harness) {
 }
 
 /**
+ * Global opt-out: when X_CLAUDE_HELPERS_SUPPRESS_NAGS=1 is set, every nag/block
+ * hook (commit, quality, long-command, plan-review, push) exits early instead of
+ * blocking or nagging. Checked as the first line of each such hook.
+ * @returns {boolean}
+ */
+export function nagsSuppressed() {
+  return process.env.X_CLAUDE_HELPERS_SUPPRESS_NAGS === '1';
+}
+
+/**
  * Block the tool call: write the reason to stderr and exit 2 (the PreToolUse
  * contract both Claude Code and Kimi honour — exit 2 blocks and feeds stderr to
  * the agent).
