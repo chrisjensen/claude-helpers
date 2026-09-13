@@ -35,9 +35,12 @@ console.log(`installed: ${hooksDest}/ (harness lib + PreToolUse enforcers)`);
 // four must live together here.
 const binDest = join(HOME, '.local', 'bin');
 mkdirSync(binDest, { recursive: true });
-for (const name of readdirSync(join(SRC, 'bin'))) {
-  const target = join(binDest, name);
-  copyFileSync(join(SRC, 'bin', name), target);
+for (const entry of readdirSync(join(SRC, 'bin'), { withFileTypes: true })) {
+  // Copy only launcher files; skip any dir the harness leaves here (e.g. an
+  // empty .claude/.cc-writes created when editing with cwd under bin/).
+  if (!entry.isFile()) continue;
+  const target = join(binDest, entry.name);
+  copyFileSync(join(SRC, 'bin', entry.name), target);
   chmodSync(target, 0o755);
   console.log(`installed: ${target}`);
 }
