@@ -29,7 +29,7 @@ trap 'rm -rf "$TMP"' EXIT
 STUBBIN="$TMP/bin"
 mkdir -p "$STUBBIN"
 for tool in claude opencode; do
-  printf '#!/usr/bin/env bash\necho STUB_%s_RAN\n' "$tool" > "$STUBBIN/$tool"
+  printf '#!/usr/bin/env bash\necho STUB_%s_RAN\nexit "${STUB_EXIT:-0}"\n' "$tool" > "$STUBBIN/$tool"
   chmod +x "$STUBBIN/$tool"
 done
 # headroom wrap claude ... -> just run the trailing claude stub.
@@ -54,6 +54,17 @@ out="$(run_pty 'zclaude -p hi')"
 check "zclaude -p: ran claude"        STUB_claude_RAN "$out"
 check "zclaude -p: name suppressed"   '!zclaude'      "$out"
 
+out="$(run_pty 'zclaude --print hi')"
+check "zclaude --print: name suppressed" '!zclaude'   "$out"
+
+# --- exit-code passthrough (the reason exec was dropped) -----------------------
+status=0; run_pipe 'zclaude' >/dev/null 2>&1 || status=$?
+check "zclaude exit 0 passthrough" 0 "$status"
+status=0; STUB_EXIT=4 run_pipe 'zclaude' >/dev/null 2>&1 || status=$?
+check "zclaude exit 4 passthrough" 4 "$status"
+status=0; STUB_EXIT=9 run_pty 'kopencode' >/dev/null 2>&1 || status=$?
+check "kopencode exit 9 passthrough (set -eu core)" 9 "$status"
+
 out="$(run_pipe 'zclaude | cat')"
 check "zclaude piped: ran claude"      STUB_claude_RAN "$out"
 check "zclaude piped: name suppressed" '!zclaude'      "$out"
@@ -71,5 +82,8 @@ check "kopencode interactive: not core name" '!hopencode' "$out"
 
 out="$(run_pipe 'kopencode | cat')"
 check "kopencode piped: name suppressed" '!kopencode' "$out"
+
+out="$(run_pty 'kopencode run hi')"
+check "kopencode run: name suppressed (non-interactive)" '!kopencode' "$out"
 
 exit $fail

@@ -2,7 +2,7 @@
 
 Home for the personal Claude Code / Kimi / opencode **harness-layer** helpers that
 don't belong in any single tool's repo: the shared harness abstraction, the
-PreToolUse enforcer hooks, and the opencode launchers.
+PreToolUse enforcer hooks, and the claude/opencode launchers.
 
 The PreToolUse hooks are **not** registered directly with the harness. Instead they
 are registered as ordered `chainedHooks` in [claude-perms'](../claude-perms)
@@ -46,6 +46,8 @@ wires that up.
   matching the hooks' runtime.
 - `test/hooks.test.mjs` — unit tests for the Node hooks.
 - `test/harness.test.sh` — unit checks for the bash harness lib.
+- `test/launchers.test.sh` — exit-note checks for the bin/ launchers (stubbed
+  downstream commands, pty + pipe paths).
 
 ## Hook contract
 
@@ -69,8 +71,7 @@ opt-out for a session where you don't want to be nagged.
 ## Develop
 
 ```sh
-npm test               # Node hook tests
-bash test/harness.test.sh   # bash harness lib test
+npm test               # all suites: Node hooks + bash harness + launchers
 npm run setup          # deploy to ~/.claude + ~/.local/bin, register chainedHooks
 ```
 

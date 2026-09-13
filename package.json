@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Personal Claude Code hooks (harness lib + PreToolUse enforcers) and opencode launchers.",
+  "description": "Personal Claude Code hooks (harness lib + PreToolUse enforcers) and the claude/opencode launchers.",
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test test/*.test.mjs && bash test/harness.test.sh && bash test/launchers.test.sh",
     "setup": "node install.mjs"
   }
 }
