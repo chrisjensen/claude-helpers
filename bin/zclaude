@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Claude Code on GLM-5.2 (z.ai via always-on headroom :8787 -> model-router).
+# Self-contained: sets the z.ai proxy config here since ~/.bashrc unsets
+# ANTHROPIC_BASE_URL globally (proxy must not leak to other processes).
+#   ANTHROPIC_BASE_URL       -> headroom -> model-router
+#   ANTHROPIC_CUSTOM_HEADERS -> X-Zai-Session: 1 tells the router to remap any
+#     claude-* model (skills, internal haiku calls) to a z.ai model
+#   CLAUDE_CODE_MAX_CONTEXT_TOKENS -> GLM-5.2 real window is 1M; Claude Code
+#     defaults unknown model names to 200k without this (v2.1.193+).
+#   CLAUDE_CODE_AUTO_COMPACT_WINDOW -> compaction threshold. Set to the real
+#     window so an unrecognized model name gets its true limit enforced instead
+#     of falling back to 200k (this launcher no longer relies on the global
+#     CLAUDE_CODE_DISABLE_1M_CONTEXT flag).
+#   ZCLAUDE                  -> marker for z.ai sessions (reserved for hook gating).
+#   --append-system-prompt   -> z.ai operating charter: reinforces the work-quality
+#     habits GLM under-does vs Claude (completeness, real-repro diagnosis, tests that
+#     hit the real path). Only affects zclaude, not real `claude`.
+# Print this launcher's name to stderr on exit as a reminder of which command
+# started the session -- suppressed in script use (stdout not a terminal, or
+# -p/--print present) so it never pollutes output a caller is consuming.
+scripted=0
+[ -t 1 ] || scripted=1
+for arg in "$@"; do
+  case "$arg" in -p|--print) scripted=1 ;; esac
+done
+
+env \
+  ANTHROPIC_BASE_URL="http://127.0.0.1:8787" \
+  ANTHROPIC_CUSTOM_HEADERS="X-Zai-Session: 1" \
+  CLAUDE_CODE_MAX_CONTEXT_TOKENS=1000000 \
+  CLAUDE_CODE_AUTO_COMPACT_WINDOW=1000000 \
+  ZCLAUDE=1 \
+  claude --model glm-5.3 \
+    --append-system-prompt "$(cat ~/.claude/zclaude-charter.md)" \
+    "$@"
+status=$?
+
+[ "$scripted" -eq 0 ] && printf '%s\n' "$(basename "$0")" >&2
+exit $status

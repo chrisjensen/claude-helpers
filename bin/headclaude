@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Print this launcher's name to stderr on exit as a reminder of which command
+# started the session -- suppressed in script use (stdout not a terminal, or
+# -p/--print present) so it never pollutes output a caller is consuming.
+scripted=0
+[ -t 1 ] || scripted=1
+for arg in "$@"; do
+  case "$arg" in -p|--print) scripted=1 ;; esac
+done
+
+headroom wrap claude "$@"
+status=$?
+
+[ "$scripted" -eq 0 ] && printf '%s\n' "$(basename "$0")" >&2
+exit $status

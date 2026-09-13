@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 # opencode on the Kimi synthetic family. Thin wrapper over hopencode.
-exec env MODEL=kimi hopencode "$@"
+exec env MODEL=kimi LAUNCHER=kopencode hopencode "$@"

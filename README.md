@@ -33,8 +33,12 @@ wires that up.
   These three are **event hooks** registered directly in `~/.claude/settings.json`
   (not claude-perms chainedHooks). The two quality hooks also skip **research
   mode** (`CLAUDE_PERMS_MODE=research`).
-- `bin/` — opencode launchers (`hopencode` core; `kopencode`/`qopencode`/`gopencode`
-  exec it). Deployed to `~/.local/bin`.
+- `bin/` — launchers deployed to `~/.local/bin`:
+  - opencode: `hopencode` core; `kopencode`/`qopencode`/`gopencode` exec it.
+  - claude: `zclaude`/`kclaude`/`qclaude` (model-routed) and `headclaude`.
+  All print their own name to stderr on exit (a reminder of which command started
+  the session), suppressed in script/non-interactive use so they never pollute
+  output a caller consumes.
 - `install.mjs` — deploys `hooks/` → `~/.claude/hooks/`, `bin/` → `~/.local/bin`,
   registers the enforcers (+ rtk) as ordered `chainedHooks`, and registers the three
   event hooks (Stop / SessionStart / PostToolUse) in `~/.claude/settings.json`. Node

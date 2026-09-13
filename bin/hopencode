@@ -39,4 +39,19 @@ fi
 : "${ANTHROPIC_API_KEY:=opencode-family-placeholder-router-strips-this}"
 export ANTHROPIC_API_KEY
 
-exec env OPENCODE_CONFIG="$overlay" opencode "$@"
+# Print the launcher's name to stderr on exit as a reminder of which command
+# started the session. $LAUNCHER is set by the kopencode/qopencode/gopencode
+# wrappers (which exec us) so the real command name shows, not "hopencode".
+# Suppressed in script use: stdout not a terminal, or opencode's non-interactive
+# `run` subcommand -- so it never pollutes output a caller is consuming.
+scripted=0
+[ -t 1 ] || scripted=1
+for arg in "$@"; do
+  case "$arg" in run) scripted=1 ;; esac
+done
+
+status=0
+env OPENCODE_CONFIG="$overlay" opencode "$@" || status=$?
+
+[ "$scripted" -eq 0 ] && printf '%s\n' "${LAUNCHER:-$(basename "$0")}" >&2
+exit $status
