@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Claude Code on GLM-5.2 (z.ai via always-on headroom :8787 -> model-router).
+# Claude Code on GLM-5.3 (z.ai via always-on headroom :8787 -> model-router).
 # Self-contained: sets the z.ai proxy config here since ~/.bashrc unsets
 # ANTHROPIC_BASE_URL globally (proxy must not leak to other processes).
 #   ANTHROPIC_BASE_URL       -> headroom -> model-router
 #   ANTHROPIC_CUSTOM_HEADERS -> X-Zai-Session: 1 tells the router to remap any
 #     claude-* model (skills, internal haiku calls) to a z.ai model
-#   CLAUDE_CODE_MAX_CONTEXT_TOKENS -> GLM-5.2 real window is 1M; Claude Code
+#   CLAUDE_CODE_MAX_CONTEXT_TOKENS -> GLM-5.3 real window is 1M; Claude Code
 #     defaults unknown model names to 200k without this (v2.1.193+).
 #   CLAUDE_CODE_AUTO_COMPACT_WINDOW -> compaction threshold. Set to the real
 #     window so an unrecognized model name gets its true limit enforced instead
