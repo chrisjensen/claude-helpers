@@ -26,8 +26,14 @@ const hooksDest = join(DEST, 'hooks');
 mkdirSync(hooksDest, { recursive: true });
 cpSync(join(SRC, 'hooks'), hooksDest, { recursive: true });
 for (const name of readdirSync(hooksDest, { recursive: true })) {
-  if (typeof name === 'string' && name.endsWith('.mjs')) chmodSync(join(hooksDest, name), 0o755);
+  if (typeof name === 'string' && (name.endsWith('.mjs') || name.endsWith('.sh'))) {
+    chmodSync(join(hooksDest, name), 0o755);
+  }
 }
+// Hooks run via node-run.sh, which resolves a >=20 node at execution time —
+// the session PATH may hold an older node (e.g. a project .nvmrc pinning an
+// old LTS via nvm-auto), and .mjs hooks need node >=12 to parse.
+const nodeRun = join(hooksDest, 'node-run.sh');
 console.log(`installed: ${hooksDest}/ (harness lib + PreToolUse enforcers)`);
 
 // --- launchers -> ~/.local/bin (must be on PATH) ------------------------------
@@ -58,9 +64,9 @@ const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
 // Replace only the chainedHooks key; every other key (e.g. trash) is preserved.
 cfg.chainedHooks = [
   { matcher: 'Bash', command: 'rtk hook claude' },
-  { matcher: 'Bash', command: `node ${hooksDest}/long-command-suggest.mjs` },
-  { matcher: 'Bash', command: `node ${hooksDest}/source-commit-enforce.mjs` },
-  { matcher: 'ExitPlanMode', command: `node ${hooksDest}/plan-review-suggest.mjs` },
+  { matcher: 'Bash', command: `${nodeRun} ${hooksDest}/long-command-suggest.mjs` },
+  { matcher: 'Bash', command: `${nodeRun} ${hooksDest}/source-commit-enforce.mjs` },
+  { matcher: 'ExitPlanMode', command: `${nodeRun} ${hooksDest}/plan-review-suggest.mjs` },
 ];
 writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
 console.log(`registered: chainedHooks in ${cfgPath} (rtk, long-command, source-commit, plan-review)`);
@@ -83,9 +89,9 @@ settings.hooks ??= {};
 // current one — every other entry (chime, bd prime, caveman, terminal-title,
 // permissions.mjs) is left untouched.
 const managed = {
-  Stop: { matcher: '', command: `node ${hooksDest}/quality-all-suggest.mjs` },
-  SessionStart: { matcher: '', command: `node ${hooksDest}/quality-baseline-init.mjs` },
-  PostToolUse: { matcher: 'Bash', command: `node ${hooksDest}/git-push-remind.mjs` },
+  Stop: { matcher: '', command: `${nodeRun} ${hooksDest}/quality-all-suggest.mjs` },
+  SessionStart: { matcher: '', command: `${nodeRun} ${hooksDest}/quality-baseline-init.mjs` },
+  PostToolUse: { matcher: 'Bash', command: `${nodeRun} ${hooksDest}/git-push-remind.mjs` },
 };
 const OURS = /quality-all-suggest|quality-baseline-init|git-push-remind/;
 
