@@ -1,34 +1,52 @@
 #!/usr/bin/env bash
-# Claude Code on Kimi K3 (moonshotai via synthetic.new, through always-on
-# headroom :8787 -> model-router :8789).
-# Self-contained: sets the proxy config here since ~/.bashrc unsets
-# ANTHROPIC_BASE_URL globally (proxy must not leak to other processes).
-#   ANTHROPIC_BASE_URL       -> headroom -> model-router
-#     body.model = hf:moonshotai/Kimi-K3 matches the router's synthetic route
-#     (^(hf:|syn:)) -> https://api.synthetic.new/anthropic (bearer).
-#   ANTHROPIC_CUSTOM_HEADERS -> X-Zai-Session: 1 tells the router to remap any
-#     claude-* model (skills asking for sonnet, internal haiku calls) to a z.ai
-#     GLM model -- there is no smaller Kimi to fall back to.
-#   CLAUDE_CODE_MAX_CONTEXT_TOKENS -> Kimi K3 window is 512k; Claude Code
-#     defaults unknown model names to 200k without this.
-#   CLAUDE_CODE_AUTO_COMPACT_WINDOW -> compaction threshold, set to the real
-#     window so the unrecognized model name gets its true limit enforced (this
-#     launcher no longer relies on the global CLAUDE_CODE_DISABLE_1M_CONTEXT flag).
+# Claude Code on Kimi K3 (api.kimi.ai/coding via always-on headroom :8787 ->
+# model-router :8789). Self-contained: sets the proxy config here since
+# ~/.bashrc unsets ANTHROPIC_BASE_URL globally (proxy must not leak to other
+# processes).
+#   ANTHROPIC_BASE_URL       -> headroom -> model-router. Every model name below
+#     (k3-256k, k3, kimi-for-coding, kimi-for-coding-highspeed) matches the
+#     router's kimi route (^(kimi|moonshot|k3)) -> https://api.kimi.ai/coding/.
+#   Opus model (the session model, --model) maps to a Kimi K3 window:
+#     default            -> k3-256k, a 256k context window.
+#     --1m (any arg)     -> k3,      a 1M context window.
+#   ANTHROPIC_DEFAULT_SONNET_MODEL / _HAIKU_MODEL -> Claude Code's sonnet and
+#     haiku aliases (skills, internal light calls) resolve to Kimi coding models
+#     directly, so their request body.model routes through the kimi route too --
+#     no z.ai-session header / GLM remap (there is no smaller Kimi otherwise).
+#   ANTHROPIC_DEFAULT_OPUS_MODEL -> mirrors --model so the opus alias resolves to
+#     the same Kimi model if anything references it by alias.
+#   CLAUDE_CODE_MAX_CONTEXT_TOKENS / _AUTO_COMPACT_WINDOW -> Claude Code defaults
+#     unknown model names to 200k; set both to the chosen window's real limit so
+#     the unrecognized model name gets its true context enforced.
 # Print this launcher's name to stderr on exit as a reminder of which command
 # started the session -- suppressed in script use (stdout not a terminal, or
 # -p/--print present) so it never pollutes output a caller is consuming.
+
+# --1m (anywhere in the args) selects the 1M-context Kimi model; default is the
+# 256k model. Strip the flag so it never reaches claude, and scan for script mode
+# in the same pass.
+opus_model="k3-256k"
+context_tokens=262144
 scripted=0
 [ -t 1 ] || scripted=1
+args=()
 for arg in "$@"; do
-  case "$arg" in -p|--print) scripted=1 ;; esac
+  case "$arg" in
+    --1m) opus_model="k3"; context_tokens=1000000 ;;
+    -p|--print) scripted=1; args+=("$arg") ;;
+    *) args+=("$arg") ;;
+  esac
 done
+set -- "${args[@]}"
 
 env \
   ANTHROPIC_BASE_URL="http://127.0.0.1:8787" \
-  ANTHROPIC_CUSTOM_HEADERS="X-Zai-Session: 1" \
-  CLAUDE_CODE_MAX_CONTEXT_TOKENS=524288 \
-  CLAUDE_CODE_AUTO_COMPACT_WINDOW=524288 \
-  claude --model hf:moonshotai/Kimi-K3 "$@"
+  ANTHROPIC_DEFAULT_OPUS_MODEL="$opus_model" \
+  ANTHROPIC_DEFAULT_SONNET_MODEL="kimi-for-coding" \
+  ANTHROPIC_DEFAULT_HAIKU_MODEL="kimi-for-coding-highspeed" \
+  CLAUDE_CODE_MAX_CONTEXT_TOKENS="$context_tokens" \
+  CLAUDE_CODE_AUTO_COMPACT_WINDOW="$context_tokens" \
+  claude --model "$opus_model" "$@"
 status=$?
 
 [ "$scripted" -eq 0 ] && printf '%s\n' "$(basename "$0")" >&2

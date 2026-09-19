@@ -32,6 +32,18 @@ for tool in claude opencode; do
   printf '#!/usr/bin/env bash\necho STUB_%s_RAN\nexit "${STUB_EXIT:-0}"\n' "$tool" > "$STUBBIN/$tool"
   chmod +x "$STUBBIN/$tool"
 done
+# Richer claude stub for model/context assertions: echoes the launcher-selected
+# model (--model <m>) and the context env vars so tests can inspect the mapping.
+STUBCLAUDE_MODEL="$(cat <<'EOF'
+#!/usr/bin/env bash
+echo STUB_claude_RAN
+model=""; while [ $# -gt 0 ]; do [ "$1" = "--model" ] && { model="$2"; shift; }; shift; done
+echo "MODEL=$model"
+echo "OPUS=$ANTHROPIC_DEFAULT_OPUS_MODEL SONNET=$ANTHROPIC_DEFAULT_SONNET_MODEL HAIKU=$ANTHROPIC_DEFAULT_HAIKU_MODEL"
+echo "CTX=$CLAUDE_CODE_MAX_CONTEXT_TOKENS AUTOCOMPACT=$CLAUDE_CODE_AUTO_COMPACT_WINDOW"
+exit "${STUB_EXIT:-0}"
+EOF
+)"
 # headroom wrap claude ... -> just run the trailing claude stub.
 printf '#!/usr/bin/env bash\nshift 2 2>/dev/null; exec claude "$@"\n' > "$STUBBIN/headroom"
 chmod +x "$STUBBIN/headroom"
@@ -85,5 +97,27 @@ check "kopencode piped: name suppressed" '!kopencode' "$out"
 
 out="$(run_pty 'kopencode run hi')"
 check "kopencode run: name suppressed (non-interactive)" '!kopencode' "$out"
+
+# --- kclaude: Kimi model + context mapping ------------------------------------
+# Swap in the richer stub that echoes the selected model and context env.
+printf '%s\n' "$STUBCLAUDE_MODEL" > "$STUBBIN/claude"
+chmod +x "$STUBBIN/claude"
+
+# Sonnet/haiku aliases are constant across both windows.
+out="$(run_pipe 'kclaude -p hi')"
+check "kclaude default: model k3-256k"       "MODEL=k3-256k"                         "$out"
+check "kclaude default: 256k context"        "CTX=262144 AUTOCOMPACT=262144"         "$out"
+check "kclaude: opus alias mirrors model"    "OPUS=k3-256k"                          "$out"
+check "kclaude: sonnet -> kimi-for-coding"   "SONNET=kimi-for-coding "               "$out"
+check "kclaude: haiku -> highspeed"          "HAIKU=kimi-for-coding-highspeed"       "$out"
+
+out="$(run_pipe 'kclaude --1m -p hi')"
+check "kclaude --1m: model k3"               "MODEL=k3"                              "$out"
+check "kclaude --1m: 1M context"             "CTX=1000000 AUTOCOMPACT=1000000"       "$out"
+check "kclaude --1m: opus alias mirrors k3"  "OPUS=k3 "                              "$out"
+
+# --1m is recognised anywhere in the args, and stripped before reaching claude.
+out="$(run_pipe 'kclaude -p hi --1m')"
+check "kclaude --1m after args: model k3"    "MODEL=k3"                              "$out"
 
 exit $fail
