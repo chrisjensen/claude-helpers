@@ -48,11 +48,19 @@ EOF
 printf '#!/usr/bin/env bash\nshift 2 2>/dev/null; exec claude "$@"\n' > "$STUBBIN/headroom"
 chmod +x "$STUBBIN/headroom"
 
-# opencode family overlay hopencode expects (HOME-scoped), + placeholder charter.
+# opencode family overlay hopencode expects (HOME-scoped), + charter. The
+# charter is the repo's own resources/zclaude-charter.md (deployed to ~/.claude
+# by install.mjs) so the zclaude runs below exercise the real content.
+REPO_CHARTER="$BIN/../resources/zclaude-charter.md"
 FAKEHOME="$TMP/home"
 mkdir -p "$FAKEHOME/.config/opencode/families" "$FAKEHOME/.claude"
 echo '{}' > "$FAKEHOME/.config/opencode/families/kimi.json"
-echo 'charter' > "$FAKEHOME/.claude/zclaude-charter.md"
+if [ -s "$REPO_CHARTER" ]; then
+  cp "$REPO_CHARTER" "$FAKEHOME/.claude/zclaude-charter.md"
+else
+  echo "FAIL - zclaude charter missing/empty in repo: $REPO_CHARTER"; fail=1
+  echo 'charter' > "$FAKEHOME/.claude/zclaude-charter.md"
+fi
 
 run_pty()  { HOME="$FAKEHOME" PATH="$STUBBIN:$BIN:$PATH" script -qec "$*" /dev/null 2>&1; }
 run_pipe() { HOME="$FAKEHOME" PATH="$STUBBIN:$BIN:$PATH" bash -c "$* 2>&1" </dev/null; }

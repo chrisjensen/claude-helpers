@@ -36,6 +36,12 @@ for (const name of readdirSync(hooksDest, { recursive: true })) {
 const nodeRun = join(hooksDest, 'node-run.sh');
 console.log(`installed: ${hooksDest}/ (harness lib + PreToolUse enforcers)`);
 
+// --- resources/zclaude-charter.md -> ~/.claude (read by bin/zclaude) ----------
+// Repo is canonical: overwrite so edits must be made here, not in the live copy.
+const charterDest = join(DEST, 'zclaude-charter.md');
+copyFileSync(join(SRC, 'resources', 'zclaude-charter.md'), charterDest);
+console.log(`installed: ${charterDest}`);
+
 // --- launchers -> ~/.local/bin (must be on PATH) ------------------------------
 // hopencode is the shared core; kopencode/qopencode/gopencode exec it, so all
 // four must live together here.
