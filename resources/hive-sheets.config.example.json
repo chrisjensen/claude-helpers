@@ -1,0 +1,5 @@
+{
+  "spreadsheetId": "put-the-id-from-your-google-sheet-url-here",
+  "sheetName": "Hive Runs",
+  "serviceAccountKeyFile": "/home/you/.config/hive/sheets-sa-key.json"
+}

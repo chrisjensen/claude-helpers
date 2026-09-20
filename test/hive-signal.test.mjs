@@ -5,7 +5,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,6 +47,39 @@ describe('hive-signal.sh', () => {
       const r = sh('wait', dir, 'plan');
       assert.equal(r.status, 2);
       assert.match(r.stderr, /no worker subdirs/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('durations computes plan/impl seconds from sentinel mtimes', () => {
+    const dir = coordWithWorkers(['claude']);
+    try {
+      // Touch each sentinel with a controlled mtime, 10s apart, in stage order.
+      const touchAt = (path, secondsFromEpoch) => {
+        writeFileSync(path, '');
+        utimesSync(path, secondsFromEpoch, secondsFromEpoch);
+      };
+      const t0 = Math.floor(Date.now() / 1000) - 1000;
+      touchAt(join(dir, 'task.md'), t0);
+      touchAt(join(dir, 'claude.plan.done'), t0 + 10);
+      touchAt(join(dir, 'plan.merged'), t0 + 20);
+      touchAt(join(dir, 'claude.impl.done'), t0 + 45);
+
+      const r = sh('durations', dir, 'claude');
+      assert.equal(r.status, 0, r.stderr);
+      assert.deepEqual(JSON.parse(r.stdout), { planSeconds: 10, implSeconds: 25 });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('durations fails loud when a sentinel is missing', () => {
+    const dir = coordWithWorkers(['claude']);
+    try {
+      const r = sh('durations', dir, 'claude');
+      assert.equal(r.status, 2);
+      assert.match(r.stderr, /missing/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -16,6 +16,7 @@
 #   hive-signal.sh merged <coord_dir>
 #   hive-signal.sh wait <coord_dir> <stage>          # block until ALL labels done
 #   hive-signal.sh wait-one <coord_dir> <signal>     # block until one sentinel exists
+#   hive-signal.sh durations <coord_dir> <label>     # print {"planSeconds":N,"implSeconds":N}
 #
 # Blocks via inotifywait when available (install inotify-tools); falls back to
 # polling. Fails loud on bad args or an empty run dir.
@@ -92,11 +93,30 @@ cmd_wait_one() {
   echo "hive-signal: '$signal' present"
 }
 
+# Duration math off sentinel mtimes: planning is task.md (written by the spawn layer
+# before workers start) to <label>.plan.done; implementation is plan.merged (when the
+# reviewed plan is released back to workers) to <label>.impl.done. Fails loud if any of
+# the four required files is missing, same as the rest of this script.
+cmd_durations() {
+  local coord="${1:-}" label="${2:-}"
+  [ -n "$coord" ] && [ -n "$label" ] || die "usage: durations <coord_dir> <label>"
+  local task="$coord/task.md" plan_done="$coord/$label.plan.done" \
+        merged="$coord/plan.merged" impl_done="$coord/$label.impl.done"
+  local f
+  for f in "$task" "$plan_done" "$merged" "$impl_done"; do
+    [ -f "$f" ] || die "missing $f"
+  done
+  local plan_seconds=$(( $(stat -c %Y "$plan_done") - $(stat -c %Y "$task") ))
+  local impl_seconds=$(( $(stat -c %Y "$impl_done") - $(stat -c %Y "$merged") ))
+  printf '{"planSeconds":%d,"implSeconds":%d}\n' "$plan_seconds" "$impl_seconds"
+}
+
 sub="${1:-}"; shift || true
 case "$sub" in
-  emit)     cmd_emit "$@" ;;
-  merged)   cmd_merged "$@" ;;
-  wait)     cmd_wait "$@" ;;
-  wait-one) cmd_wait_one "$@" ;;
-  *) die "unknown subcommand '${sub:-}'. Use: emit | merged | wait | wait-one" ;;
+  emit)      cmd_emit "$@" ;;
+  merged)    cmd_merged "$@" ;;
+  wait)      cmd_wait "$@" ;;
+  wait-one)  cmd_wait_one "$@" ;;
+  durations) cmd_durations "$@" ;;
+  *) die "unknown subcommand '${sub:-}'. Use: emit | merged | wait | wait-one | durations" ;;
 esac
