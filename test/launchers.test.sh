@@ -39,7 +39,7 @@ STUBCLAUDE_MODEL="$(cat <<'EOF'
 echo STUB_claude_RAN
 model=""; while [ $# -gt 0 ]; do [ "$1" = "--model" ] && { model="$2"; shift; }; shift; done
 echo "MODEL=$model"
-echo "OPUS=$ANTHROPIC_DEFAULT_OPUS_MODEL SONNET=$ANTHROPIC_DEFAULT_SONNET_MODEL HAIKU=$ANTHROPIC_DEFAULT_HAIKU_MODEL"
+echo "HEADERS=$ANTHROPIC_CUSTOM_HEADERS"
 echo "CTX=$CLAUDE_CODE_MAX_CONTEXT_TOKENS AUTOCOMPACT=$CLAUDE_CODE_AUTO_COMPACT_WINDOW"
 exit "${STUB_EXIT:-0}"
 EOF
@@ -111,18 +111,17 @@ check "kopencode run: name suppressed (non-interactive)" '!kopencode' "$out"
 printf '%s\n' "$STUBCLAUDE_MODEL" > "$STUBBIN/claude"
 chmod +x "$STUBBIN/claude"
 
-# Sonnet/haiku aliases are constant across both windows.
+# The X-LLM-Force: kimi header is constant across both windows; the router remaps
+# any leaked claude-* to Kimi models (asserted in llm-proxy-router's own tests).
 out="$(run_pipe 'kclaude -p hi')"
 check "kclaude default: model k3-256k"       "MODEL=k3-256k"                         "$out"
 check "kclaude default: 256k context"        "CTX=262144 AUTOCOMPACT=262144"         "$out"
-check "kclaude: opus alias mirrors model"    "OPUS=k3-256k"                          "$out"
-check "kclaude: sonnet -> kimi-for-coding"   "SONNET=kimi-for-coding "               "$out"
-check "kclaude: haiku -> highspeed"          "HAIKU=kimi-for-coding-highspeed"       "$out"
+check "kclaude: X-LLM-Force kimi header"     "HEADERS=X-LLM-Force: kimi"             "$out"
 
 out="$(run_pipe 'kclaude --1m -p hi')"
 check "kclaude --1m: model k3"               "MODEL=k3"                              "$out"
 check "kclaude --1m: 1M context"             "CTX=1000000 AUTOCOMPACT=1000000"       "$out"
-check "kclaude --1m: opus alias mirrors k3"  "OPUS=k3 "                              "$out"
+check "kclaude --1m: X-LLM-Force kimi"       "HEADERS=X-LLM-Force: kimi"             "$out"
 
 # --1m is recognised anywhere in the args, and stripped before reaching claude.
 out="$(run_pipe 'kclaude -p hi --1m')"
