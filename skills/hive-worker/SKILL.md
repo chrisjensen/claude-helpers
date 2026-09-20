@@ -10,8 +10,9 @@ it, on your own branch). Coordinate through files in the run dir; `hive-signal.s
 - **run dir**: `dirname "$PWD"` (your worktree is a subdir of it) — the `<run>` below.
 - **label**: `basename "$PWD"` — your worktree's directory name — the `<label>` below.
 
-1. Read `<run>/task.md`. Plan the task, then write the finished plan to `PLAN.md` in
-   the worktree root:
+1. Plan the task above (also mirrored at `<run>/task.md`, for reference or if this
+   session is resumed without that context), then write the finished plan to
+   `PLAN.md` in the worktree root:
    ```
    hive-signal.sh emit <run> <label> plan
    ```

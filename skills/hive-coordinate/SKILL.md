@@ -12,10 +12,20 @@ skill argument. No manifest — drive everything off the subdir list. N-agnostic
 1. **Wait for all plans** (backgrounded via `run_in_background`):
    `hive-signal.sh wait . plan`.
 2. **Merge.** Read each `<label>/PLAN.md`, synthesize the strongest hybrid with
-   `/plan-review`, write it to `PLAN.hybrid.md`, then release the workers:
+   `/plan-review`, and write it to `PLAN.hybrid.md`.
+3. **Get approval before releasing workers.** Summarize for the user: the key
+   decisions made while merging, the final `PLAN.hybrid.md`, and anything else
+   worth flagging (conflicting approaches, risks, things dropped from a
+   worker's plan). Only once the user approves, release the workers:
    `hive-signal.sh merged .`.
-3. **Wait for all implementations:** `hive-signal.sh wait . impl`.
-4. **Review + promote.** For each worker, review `git -C <label> diff
+4. **Wait for all implementations:** `hive-signal.sh wait . impl`.
+
+Both waits already block until their sentinels exist — once backgrounded, don't poll
+them with `sleep` or repeated checks (a standalone `sleep` is blocked by the harness
+anyway); the session resumes when the backgrounded command completes. To check interim
+progress, read the backgrounded task's own output instead.
+
+5. **Review + promote.** For each worker, review `git -C <label> diff
    origin/<base>...HEAD` with `/feature-merge` + git-diff-reviewer. Pick the single best
    implementation, and identify any features from the other worktrees worth folding in.
    Present the merge plan to the user for approval **before** merging any worktree or
