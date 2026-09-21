@@ -3,7 +3,8 @@ name: hive-coordinate
 description: Run an A/B test of worker implementations — merge their plans, then review the implementations and promote the best as a PR. Invoked as `/hive-coordinate <base>`.
 ---
 
-The run dir is your CWD; `hive-signal.sh` is on `PATH`. The **workers are the
+The run dir is your CWD; `hive-signal.sh` and `hive-sheet-append.mjs` are on `PATH`
+(both deployed to `~/.local/bin` by this repo's `install.mjs`). The **workers are the
 subdirectories of the run dir** — each is a worktree named for its label (signal
 sentinels are files, not dirs). Derive a worker's branch with
 `git -C <label> rev-parse --abbrev-ref HEAD`. `<base>` (the PR target branch) is the
@@ -31,7 +32,7 @@ progress, read the backgrounded task's own output instead.
    Present the merge plan to the user for approval **before** merging any worktree or
    opening a PR. On approval, open the PR from the winning branch with `/pr`.
 6. **Record per-model performance.** Skip this step (and say so) if
-   `~/.config/hive/sheets.json` doesn't exist — recording is best-effort, never blocks
+   `~/.config/clorchestrate/sheets.json` doesn't exist — recording is best-effort, never blocks
    the run. Otherwise, for each label:
    - From `<label>/PLAN.md` and its diff (already read in steps 2 and 5), write a
      succinct comma-separated list of the features it covers, once for the plan and

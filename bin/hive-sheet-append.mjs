@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // hive-sheet-append.mjs — append one hive run/model performance row to the Google
-// Sheet configured at ~/.config/hive/sheets.json. Called by the hive-coordinate skill
+// Sheet configured at ~/.config/clorchestrate/sheets.json. Called by the hive-coordinate skill
 // once per model label after a run's plan+implementation stages are done.
 //
 // No npm dependencies: service-account auth is a hand-signed RS256 JWT (node:crypto)
@@ -16,7 +16,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { createSign } from 'node:crypto';
 
-const CONFIG_PATH = join(homedir(), '.config', 'hive', 'sheets.json');
+const CONFIG_PATH = join(homedir(), '.config', 'clorchestrate', 'sheets.json');
 
 // Column order the sheet expects — one row per model per run.
 const ROW_FIELDS = [
