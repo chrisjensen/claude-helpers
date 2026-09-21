@@ -3,8 +3,8 @@ name: hive-coordinate
 description: Run an A/B test of worker implementations — merge their plans, then review the implementations and promote the best as a PR. Invoked as `/hive-coordinate <base>`.
 ---
 
-The run dir is your CWD; `hive-signal.sh` and `hive-sheet-append.mjs` are on `PATH`
-(both deployed to `~/.local/bin` by this repo's `install.mjs`). The **workers are the
+The run dir is your CWD; `hive-signal.sh` is on `PATH` (deployed to `~/.local/bin` by
+this repo's `install.mjs`). The **workers are the
 subdirectories of the run dir** — each is a worktree named for its label (signal
 sentinels are files, not dirs). Derive a worker's branch with
 `git -C <label> rev-parse --abbrev-ref HEAD`. `<base>` (the PR target branch) is the
@@ -31,24 +31,6 @@ progress, read the backgrounded task's own output instead.
    implementation, and identify any features from the other worktrees worth folding in.
    Present the merge plan to the user for approval **before** merging any worktree or
    opening a PR. On approval, open the PR from the winning branch with `/pr`.
-6. **Record per-model performance.** Skip this step (and say so) if
-   `~/.config/clorchestrate/sheets.json` doesn't exist — recording is best-effort, never blocks
-   the run. Otherwise, for each label:
-   - From `<label>/PLAN.md` and its diff (already read in steps 2 and 5), write a
-     succinct comma-separated list of the features it covers, once for the plan and
-     once for the implementation.
-   - Take the union of features across all labels (plan and implementation
-     separately); each label's `%` is its own feature count divided by that union's
-     count, as a percentage.
-   - Run `hive-signal.sh durations . <label>` for `planDurationSeconds` /
-     `implDurationSeconds`.
-   - Pipe one row into `hive-sheet-append.mjs`, `run` = this run dir's basename,
-     `model` = `<label>`, `selected` = true only for the promoted implementation:
-     ```
-     echo '{"date":"...","run":"...","model":"...","planFeatures":"...",
-       "planFeaturesPct":NN,"planDurationSeconds":NN,"implFeatures":"...",
-       "implFeaturesPct":NN,"implDurationSeconds":NN,"selected":true}' \
-       | hive-sheet-append.mjs
-     ```
-
-The worktrees and run dir are the spawn layer's to clean up.
+6. **Evaluate.** Once promoted, invoke `/hive-evaluate <base> <selected-label>`
+   (`<selected-label>` is the winning worker from step 5) to record per-model
+   performance.
