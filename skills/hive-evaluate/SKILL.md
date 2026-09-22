@@ -22,8 +22,9 @@ For each label:
    succinct comma-separated list of the features it covers, once for the plan and once
    for the implementation.
 2. Take the union of features across all labels (plan and implementation separately);
+   Deduplicate features across all so each unique feature is represented once
    each label's `%` is its own feature count divided by that union's count, as a
-   percentage.
+   percentage. eg 90
 3. Run `hive-signal.sh durations . <label>` for `planDurationSeconds` /
    `implDurationSeconds`.
 4. Pipe one row into `hive-sheet-append.mjs`, `run` = this run dir's basename, `model`
