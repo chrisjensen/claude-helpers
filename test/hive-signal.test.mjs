@@ -74,6 +74,17 @@ describe('hive-signal.sh', () => {
     }
   });
 
+  test('wait-one rejects a plan content file instead of a signal', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'hive-'));
+    try {
+      const r = sh('wait-one', dir, 'PLAN.hybrid.md');
+      assert.equal(r.status, 2);
+      assert.match(r.stderr, /not a signal file/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test('durations fails loud when a sentinel is missing', () => {
     const dir = coordWithWorkers(['claude']);
     try {

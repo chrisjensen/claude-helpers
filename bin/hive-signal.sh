@@ -86,9 +86,21 @@ cmd_wait() {
   echo "hive-signal: all '$stage' signals present"
 }
 
+# A signal is a bare sentinel: "<label>.<stage>.done" or "plan.merged". Reject
+# anything else (esp. plan content files like PLAN.md / PLAN.hybrid.md) so callers
+# can't watch a file that's still being written instead of the signal that marks it done.
+check_is_signal() {
+  local name="$1"
+  case "$name" in
+    plan.merged|*.done) return 0 ;;
+    *) die "'$name' is not a signal file (expected *.done or plan.merged) — watch the signal, not the plan file itself" ;;
+  esac
+}
+
 cmd_wait_one() {
   local coord="${1:-}" signal="${2:-}"
   [ -n "$coord" ] && [ -n "$signal" ] || die "usage: wait-one <coord_dir> <signal>"
+  check_is_signal "$signal"
   wait_for "$coord" "$coord/$signal"
   echo "hive-signal: '$signal' present"
 }
