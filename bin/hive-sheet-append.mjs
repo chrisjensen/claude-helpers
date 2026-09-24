@@ -29,6 +29,7 @@ const ROW_FIELDS = [
   'implFeatures',
   'implFeaturesPct',
   'implDurationSeconds',
+  'correct',
   'selected',
 ];
 

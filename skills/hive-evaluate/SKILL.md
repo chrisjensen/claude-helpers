@@ -27,12 +27,19 @@ For each label:
    percentage. eg 90
 3. Run `hive-signal.sh durations . <label>` for `planDurationSeconds` /
    `implDurationSeconds`.
-4. Pipe one row into `hive-sheet-append.mjs`, `run` = this run dir's basename, `model`
-   = `<label>`, `selected` = true only when `<label>` is `<selected-label>`:
+4. Judge `correct` from `<label>/PLAN.md` and `git -C <label> diff origin/<base>...HEAD`:
+   `true` only if the worker's plan was a correct solution for the task **and** the
+   implementation faithfully implements that plan. Independent of selection — a
+   non-selected worker can be `correct: true`; a worker that reached the wrong
+   conclusion (bad plan, or implementation that deviates into a wrong result) is
+   `correct: false`.
+5. Pipe one row into `hive-sheet-append.mjs`, `run` = this run dir's basename, `model`
+   = `<label>`, `correct` per step 4, `selected` = true only when `<label>` is
+   `<selected-label>`:
    ```
    echo '{"date":"...","run":"...","model":"...","planFeatures":"...",
      "planFeaturesPct":NN,"planDurationSeconds":NN,"implFeatures":"...",
-     "implFeaturesPct":NN,"implDurationSeconds":NN,"selected":true}' \
+     "implFeaturesPct":NN,"implDurationSeconds":NN,"correct":true,"selected":true}' \
      | hive-sheet-append.mjs
    ```
 

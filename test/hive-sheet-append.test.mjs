@@ -22,6 +22,7 @@ const ROW = {
   implFeatures: 'auth',
   implFeaturesPct: 50,
   implDurationSeconds: 300,
+  correct: true,
   selected: true,
 };
 
@@ -37,6 +38,7 @@ describe('hive-sheet-append.mjs', () => {
       'auth',
       50,
       300,
+      true,
       true,
     ]);
   });
