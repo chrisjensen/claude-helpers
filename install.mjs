@@ -44,9 +44,8 @@ console.log(`installed: ${charterDest}`);
 
 // --- bin -> ~/.local/bin (must be on PATH) ------------------------------------
 // opencode launchers (hopencode is the shared core; kopencode/qopencode/gopencode
-// exec it, so all four must live together) plus hive-signal.sh (the hive run
-// primitive the hive-worker/hive-coordinate skills call). Every bin/ file is
-// deployed executable.
+// exec it, so all four must live together). Every bin/ file is deployed
+// executable.
 const binDest = join(HOME, '.local', 'bin');
 mkdirSync(binDest, { recursive: true });
 for (const entry of readdirSync(join(SRC, 'bin'), { withFileTypes: true })) {
@@ -80,9 +79,8 @@ writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
 console.log(`registered: chainedHooks in ${cfgPath} (rtk, long-command, source-commit, plan-review)`);
 
 // --- skills -> ~/.claude/skills -----------------------------------------------
-// hive-worker / hive-coordinate run inside hive sessions (usually in other repos),
-// so they must live in the global skills dir. Merge our skill subdirs in without
-// touching the user's other skills.
+// Skills may run in any repo, so they must live in the global skills dir. Merge
+// our skill subdirs in without touching the user's other skills.
 const skillsSrc = join(SRC, 'skills');
 if (existsSync(skillsSrc)) {
   const skillsDest = join(DEST, 'skills');

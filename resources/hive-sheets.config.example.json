@@ -1,5 +1,0 @@
-{
-  "spreadsheetId": "put-the-id-from-your-google-sheet-url-here",
-  "sheetName": "Hive Runs",
-  "serviceAccountKeyFile": "/home/you/.config/clorchestrate/sheets-sa-key.json"
-}
