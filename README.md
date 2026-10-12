@@ -39,6 +39,7 @@ wires that up.
     All launchers print their own name to stderr on exit (a reminder of which command
     started the session), suppressed in script/non-interactive use so they never
     pollute output a caller consumes.
+  - `gh-pr-watch.sh` — blocks until a PR's CI finishes; exit 0 passed / 1 failed / 2 merge conflicts (used by the `gh-pr-watch` skill).
   install globally without also being active in this repo's own sessions.
 - `install.mjs` — deploys `hooks/` → `~/.claude/hooks/`, `bin/` → `~/.local/bin`,
   `skills/` → `~/.claude/skills/`,
