@@ -32,10 +32,20 @@ try {
   process.exit(0);
 }
 
-// Allow stop if the working tree is clean.
+// An untracked PLAN.md is a plan, not code (e.g. a pool worker ending its turn after
+// submitting its plan) — leave it out so planning alone never triggers the nag.
+const UNTRACKED_PLAN_LINE = '?? PLAN.md';
+/** @param {string} status */
+const withoutPlan = (status) =>
+  status
+    .split('\n')
+    .filter((line) => line !== UNTRACKED_PLAN_LINE)
+    .join('\n');
+
+// Allow stop if the working tree is clean (ignoring an untracked PLAN.md).
 let current = '';
 try {
-  current = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' });
+  current = withoutPlan(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }));
 } catch {
   process.exit(0);
 }
@@ -47,7 +57,7 @@ const sessionId = input?.session_id ?? '';
 if (sessionId) {
   const baselineFile = join(tmpdir(), `claude-quality-baseline-${sessionId}`);
   if (existsSync(baselineFile)) {
-    const baseline = readFileSync(baselineFile, 'utf8');
+    const baseline = withoutPlan(readFileSync(baselineFile, 'utf8'));
     if (current.trimEnd() === baseline.trimEnd()) process.exit(0);
   } else {
     // No baseline (session predates this hook, or $TMPDIR was cleared): can't

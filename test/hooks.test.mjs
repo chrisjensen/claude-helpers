@@ -114,6 +114,19 @@ describe('plan-review-suggest.mjs', () => {
     assert.equal(r.code, 2);
     assert.match(r.stderr, /plan-review/);
   });
+
+  test('blocks writing PLAN.md but allows other writes', () => {
+    const planWrite = run('plan-review-suggest.mjs', {
+      input: { tool_name: 'Write', tool_input: { file_path: '/repo/PLAN.md' } },
+    });
+    assert.equal(planWrite.code, 2);
+    assert.match(planWrite.stderr, /writing PLAN\.md/);
+
+    const otherWrite = run('plan-review-suggest.mjs', {
+      input: { tool_name: 'Write', tool_input: { file_path: '/repo/src/index.mjs' } },
+    });
+    assert.equal(otherWrite.code, 0);
+  });
 });
 
 describe('quality-baseline-init.mjs', () => {
@@ -143,6 +156,18 @@ describe('quality-all-suggest.mjs', () => {
       assert.equal(r.code, 0);
       assert.match(r.stdout, /"decision":"block"/);
       assert.match(r.stdout, /quality-all/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('an untracked PLAN.md alone does not trigger the nag', () => {
+    const dir = tempRepo();
+    writeFileSync(join(dir, 'PLAN.md'), 'plan');
+    try {
+      const r = run('quality-all-suggest.mjs', { input: { stop_hook_active: false }, cwd: dir });
+      assert.equal(r.code, 0);
+      assert.equal(r.stdout, '');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

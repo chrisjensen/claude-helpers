@@ -74,6 +74,7 @@ cfg.chainedHooks = [
   { matcher: 'Bash', command: `${nodeRun} ${hooksDest}/long-command-suggest.mjs` },
   { matcher: 'Bash', command: `${nodeRun} ${hooksDest}/source-commit-enforce.mjs` },
   { matcher: 'ExitPlanMode', command: `${nodeRun} ${hooksDest}/plan-review-suggest.mjs` },
+  { matcher: 'Write', command: `${nodeRun} ${hooksDest}/plan-review-suggest.mjs` },
 ];
 writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
 console.log(`registered: chainedHooks in ${cfgPath} (rtk, long-command, source-commit, plan-review)`);
